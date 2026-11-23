@@ -44,9 +44,64 @@ input,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid #7
 .foot{text-align:center;color:#93677b;font-size:.72rem;margin:18px 8px}
 .hidden{display:none!important}
 @media(max-width:390px){.grid{grid-template-columns:1fr}.card{padding:17px}.nav button{font-size:.65rem}}
+/* Étalonnage */
+h1{color:#f6b3cc;text-shadow:0 0 18px #f6b3cc33}
+.section-title{color:#ffe6ef}
+.result,.quote-no{color:#ff8fb8}
+.card{border:1px solid #8c3d63;box-shadow:0 0 0 1px #ff4f9612,0 0 28px #ff4f9622,0 14px 36px #000a}
+.tile{border:1px solid #7a3456;box-shadow:0 0 18px #ff4f9618;background:#24101c}
+.fill,.gauge span{background:linear-gradient(90deg,#ff4f96,#d61658)}
+.big{text-shadow:0 0 36px #ffc85788,0 0 4px #ffc85755}
+.eyebrow{color:#c98aa6}
+input[type=range]{accent-color:#ff4f96}
+/* Onboarding */
+.ob{position:fixed;inset:0;z-index:50;background:radial-gradient(circle at 50% -10%,#581432 0,#160811 60%);display:flex;flex-direction:column;padding:28px 22px calc(24px + env(safe-area-inset-bottom))}
+.ob.hidden{display:none}
+.ob-skip{align-self:flex-end;background:none;color:var(--muted);font-size:.85rem;padding:6px 4px}
+.ob-slides{flex:1;display:flex;align-items:center;justify-content:center;text-align:center}
+.ob-slide{display:none;max-width:420px;width:100%;animation:obIn .45s ease}
+.ob-slide.active{display:block}
+@keyframes obIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.ob-emoji{font-size:4.2rem;filter:drop-shadow(0 0 16px #ff4f9655)}
+.ob h2{font:italic 700 2rem/1.15 "Playfair Display",serif;color:#f6b3cc;margin:14px 0 10px}
+.ob p{color:var(--muted);line-height:1.5;margin:0 0 6px}
+.ob-gold{color:var(--gold);font:700 4.5rem/1 "Playfair Display",serif;text-shadow:0 0 30px #ffc85788;margin:10px 0}
+.ob-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.ob-choice{background:#24101c;border:1px solid #7a3456;color:var(--txt);border-radius:16px;padding:14px 8px;font-weight:700;font-size:.92rem}
+.ob-choice.sel{background:#5b1739;border-color:#ff4f96;box-shadow:0 0 18px #ff4f9640}
+.ob-form{text-align:left;margin-top:14px}
+.ob-tip{background:#24101c;border:1px solid #7a3456;border-radius:16px;padding:14px;text-align:left;margin-top:12px;font-size:.92rem}
+.ob-tip b{color:#ffe6ef}
+.ob-bottom{display:flex;flex-direction:column;align-items:center;gap:16px}
+.ob-dots{display:flex;gap:8px}.ob-dots span{width:8px;height:8px;border-radius:9px;background:#5b2a42;transition:.3s}.ob-dots span.on{width:24px;background:#ff4f96}
+.ob-next{width:100%;max-width:420px;padding:15px}
+.replay{background:none;color:var(--muted);text-decoration:underline;font-size:.85rem;margin-top:12px;padding:6px}
 </style>
 </head>
 <body>
+<div class="ob hidden" id="ob" role="dialog" aria-label="Bienvenue">
+  <button class="ob-skip" id="obSkip">Passer</button>
+  <div class="ob-slides">
+    <div class="ob-slide active">
+      <div class="ob-emoji">😎💸</div>
+      <h2>Ta paye tombe quand ?</h2>
+      <p>Dis-le-moi et je lance ton compte à rebours.</p>
+      <div class="ob-choices" id="obModes">
+        <button class="ob-choice" data-v="last">Le dernier jour de semaine du mois</button>
+        <button class="ob-choice" data-v="fixed">Un jour fixe</button>
+      </div>
+      <div class="ob-form hidden" id="obFixed">
+        <label for="obDay">Quel jour du mois ?</label>
+        <input type="number" id="obDay" min="1" max="31" value="28">
+        <label for="obShift">Si ça tombe un week-end</label>
+        <select id="obShift"><option value="before">Le vendredi d'avant</option><option value="after">Le lundi d'après</option></select>
+      </div>
+    </div>
+  </div>
+  <div class="ob-bottom">
+    <button class="primary ob-next" id="obNext">C'est parti ! 🎉</button>
+  </div>
+</div>
 <main>
 <header>
   <div class="mascot">😎💸</div>
@@ -141,6 +196,7 @@ input,select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid #7
     </div>
     <button class="primary" id="saveSettings" style="margin-top:18px">Enregistrer mes réglages</button>
     <p class="tagline" id="saved"></p>
+    <button class="replay" id="replayOb">Changer ma date de paye</button>
   </div>
 </section>
 
@@ -179,6 +235,20 @@ $('mode').onchange=()=>{$('fixedBox').classList.toggle('hidden',$('mode').value!
 $('saveSettings').onclick=()=>{cfg={profile:$('profile').value,mode:$('mode').value,day:+$('day').value||28,shift:$('shift').value};save();render();$('saved').textContent='Réglages enregistrés 💖'};
 $('share').onclick=async()=>{let text=`${$('days').textContent} ${$('unit').textContent} avant ma prochaine paye ! Et toi, tu tiens le coup ? 💸`;try{if(navigator.share)await navigator.share({title:"C'est quand la paye ?",text});else if(navigator.clipboard){await navigator.clipboard.writeText(text);$('shareStatus').textContent='Message copié ! Tu peux le partager. 💖'}else $('shareStatus').textContent=text}catch(e){}};
 sync();render();newExcuse();
+// Onboarding (1 écran)
+(function(){
+  const ob=$('ob');
+  function pick(v){$('obModes').querySelectorAll('.ob-choice').forEach(b=>b.classList.toggle('sel',b.dataset.v===v))}
+  function open(){pick(cfg.mode);$('obDay').value=cfg.day;$('obShift').value=cfg.shift;$('obFixed').classList.toggle('hidden',cfg.mode!=='fixed');ob.classList.remove('hidden')}
+  function finish(){cfg.day=+$('obDay').value||28;cfg.shift=$('obShift').value;save();sync();render();ob.classList.add('hidden');try{localStorage.setItem('paye-onboarded','1')}catch(e){}}
+  $('obModes').onclick=e=>{const b=e.target.closest('.ob-choice');if(b){cfg.mode=b.dataset.v;pick(cfg.mode);$('obFixed').classList.toggle('hidden',cfg.mode!=='fixed')}};
+  $('obNext').onclick=()=>{finish();$('celebrate').click()};
+  $('obSkip').onclick=finish;
+  $('replayOb').onclick=open;
+  let seen=null;try{seen=localStorage.getItem('paye-onboarded')}catch(e){}
+  if(!seen) open();
+})();
+
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body></html>
