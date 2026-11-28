@@ -95,6 +95,8 @@ body.payday #tease{background:linear-gradient(90deg,#ffc857,#ff9f1c);color:#1a0a
 @keyframes glow{50%{box-shadow:0 0 0 2px #ffc85799,0 0 90px #ffc85788,0 14px 36px #000a}}
 @keyframes pulse{50%{transform:scale(1.06)}}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+body.party-out main{opacity:.25;transition:opacity .6s}
+main{transition:opacity .6s}
 @media (prefers-reduced-motion:reduce){body.payday *{animation:none!important}}
 </style>
 </head>
@@ -236,12 +238,12 @@ const sayings=["À la fin du mois, même les pièces jaunes ont des ambitions.",
 const messages=["Courage, la fortune est peut-être à deux notifications de toi. 💸","Tiens bon : ton compte bancaire prépare son retour. 💪","Encore un peu de patience, les pâtes ne vont pas se manger toutes seules. 🍝","Respire. Tu es plus fort(e) que ton relevé bancaire. 😂","La paye arrive… enfin, c'est ce qu'on se répète."];
 const excuses=["Je ne suis pas fauché(e), je suis en pause financière.","Mon argent est parti découvrir le monde sans moi.","Je pratique le minimalisme… surtout par obligation.","Mon compte est en mode économie d'énergie.","Je ne suis pas à découvert, je suis en exploration bancaire.","Mon banquier et moi, on prend un peu de distance.","Je suis riche en projets, pas encore en euros.","Mon portefeuille fait une cure détox."];
 const prizes=["🍀 La chance te sourit aujourd'hui !","💸 Un virement imaginaire vient d'arriver !","👑 Tu es nommé(e) ministre des fins de mois.","🍝 Repas de fête : pâtes au beurre améliorées !","✨ Ton découvert prend une journée de repos.","🎉 Tu gagnes le droit de patienter avec panache."];
-let cfg=load();
+let paidToday=false;let cfg=load();
 function load(){try{return {...{mode:"last",day:28,shift:"before",profile:"salaire"},...JSON.parse(localStorage.getItem("paye-v2")||"{}")}}catch(e){return {mode:"last",day:28,shift:"before",profile:"salaire"}}}
 function save(){try{localStorage.setItem("paye-v2",JSON.stringify(cfg))}catch(e){}}
 function working(d){return d.getDay()!=0&&d.getDay()!=6}
 function payday(y,m){let last=new Date(y,m+1,0).getDate(),d=cfg.mode==="last"?new Date(y,m,last):new Date(y,m,Math.min(Math.max(1,+cfg.day||1),last)),step=cfg.mode==="last"||cfg.shift==="before"?-1:1;while(!working(d))d.setDate(d.getDate()+step);return d}
-function render(){let now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),next=payday(today.getFullYear(),today.getMonth());if(next<today)next=payday(today.getFullYear(),today.getMonth()+1);let prev=payday(next.getFullYear(),next.getMonth()-1),n=Math.round((next-today)/86400000),total=Math.max(1,Math.round((next-prev)/86400000)),pct=n===0?100:Math.round((1-n/total)*100);$('days').textContent=n===0?'🎉':n;$('unit').textContent=n===0?'C’est aujourd’hui !':n===1?'jour':'jours';$('date').textContent=next.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});$('progress').style.width=pct+'%';$('percent').textContent=pct+' % du chemin parcouru';$('payLabel').textContent=cfg.profile==='bourse'?'Prochaine bourse dans…':cfg.profile==='retraite'?'Prochaine pension dans…':cfg.profile==='facture'?'Prochain règlement dans…':'Prochaine paye dans…';$('mainMessage').textContent=messages[n===0?0:n%messages.length];$('calendarInfo').textContent='Prochain versement prévu : '+$('date').textContent+'.';let idx=Math.floor((Date.now()-new Date(now.getFullYear(),0,1))/86400000)%365;showQuote(idx);setParty(n===0)}
+function render(){let now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),next=payday(today.getFullYear(),today.getMonth());if(next<today)next=payday(today.getFullYear(),today.getMonth()+1);if(paidToday&&+next===+today)next=payday(today.getFullYear(),today.getMonth()+1);if(paidToday&&+next<=+today)next=payday(today.getFullYear(),today.getMonth()+2);let prev=payday(next.getFullYear(),next.getMonth()-1),n=Math.round((next-today)/86400000),total=Math.max(1,Math.round((next-prev)/86400000)),pct=n===0?100:Math.round((1-n/total)*100);$('days').textContent=n===0?'🎉':n;$('unit').textContent=n===0?'C’est aujourd’hui !':n===1?'jour':'jours';$('date').textContent=next.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});$('progress').style.width=pct+'%';$('percent').textContent=pct+' % du chemin parcouru';$('payLabel').textContent=cfg.profile==='bourse'?'Prochaine bourse dans…':cfg.profile==='retraite'?'Prochaine pension dans…':cfg.profile==='facture'?'Prochain règlement dans…':'Prochaine paye dans…';$('mainMessage').textContent=messages[n===0?0:n%messages.length];$('calendarInfo').textContent='Prochain versement prévu : '+$('date').textContent+'.';let idx=Math.floor((Date.now()-new Date(now.getFullYear(),0,1))/86400000)%365;showQuote(idx);setParty(n===0);if(paidToday){$('payLabel').textContent='Paye reçue ✅ Prochaine dans…'}}
 function showQuote(i){$('dailyQuote').textContent='« '+sayings[i]+' »';$('quoteNumber').textContent='PROVERBE N° '+(i+1)+' / 365'}
 function setSurvival(v){$('survivalBar').style.width=v+'%';let t=v<20?['💀','Survie extrême']:v<45?['🍝','Pâtes au beurre']:v<70?['😬','On serre les dents']:v<90?['🙂','Ça tient la route']:['🥂','On respire !'];$('survivalEmoji').textContent=t[0];$('survivalText').textContent=t[1]}
 $('survival').addEventListener('input',e=>setSurvival(+e.target.value));setSurvival(50);
@@ -313,16 +315,18 @@ function tick(t){K=lastT?Math.min(3,(t-lastT)/16.67):1;lastT=t;cx.clearRect(0,0,
   raf=alive?requestAnimationFrame(tick):null;if(!alive){lastT=0;cx.clearRect(0,0,cv.width,cv.height)}}
 function go(){if(!raf)raf=requestAnimationFrame(tick)}
 // --- le show du jour de paye : un effet après l'autre
-function partyShow(){if(reduce){confettiFx(80,800);return}timers.forEach(clearTimeout);timers=[
-  setTimeout(balloonsFx,0),setTimeout(()=>confettiFx(520,4500),0),setTimeout(()=>fireworks(11000),0),setTimeout(()=>feteFx(11000),200),
-  setTimeout(balloonsFx,4500),setTimeout(()=>confettiFx(300,2500),6500),setTimeout(()=>confettiBurst(160),9000)]}
+function partyShow(){timers.forEach(clearTimeout);if(reduce){confettiFx(80,800);timers=[setTimeout(endParty,1500)];return}timers=[
+  setTimeout(balloonsFx,0),setTimeout(()=>confettiFx(380,2200),0),setTimeout(()=>fireworks(4200),0),setTimeout(()=>feteFx(5200),150),
+  setTimeout(()=>confettiBurst(120),2400),setTimeout(endParty,6200)]}
+function endParty(){if(!document.body.classList.contains('payday'))return;document.body.classList.add('party-out');
+  setTimeout(()=>{paidToday=true;document.body.classList.remove('party-out');render();window.scrollTo({top:0,behavior:'smooth'})},700)}
 const fxList=[balloonsFx,()=>confettiFx(),()=>fireworks(3500),()=>feteFx(4000)];
 let partyOn=false;
 function setParty(on){document.body.classList.toggle('payday',on);
   if(on)$('payLabel').textContent='Le grand jour est arrivé';
   if(on&&!partyOn){partyOn=true;$('mainMessage').textContent=pick(paydayLines);$('days').textContent='💸';$('unit').textContent="C'est la paye !";partyShow()}
   if(!on)partyOn=false}
-$('celebrate').onclick=()=>partyShow();
+$('celebrate').onclick=()=>{balloonsFx();confettiFx(380,2200);fireworks(4200);feteFx(5200);setTimeout(()=>confettiBurst(120),2400)};
 
 sync();render();newExcuse();
 // Onboarding (1 écran)
